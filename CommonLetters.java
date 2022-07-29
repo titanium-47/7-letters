@@ -10,48 +10,51 @@ import java.util.Set;
 class CommonLetters{
     public static void main(String[] args) {
         long startTime = System.currentTimeMillis();
-        Dictionary<Set<Character>, Integer> words = new Hashtable<Set<Character>, Integer>(100000);
+        Dictionary<Integer, Integer> words = new Hashtable<Integer, Integer>(100000);
         String fileName = "englishWords.txt";
+        int smallestWord = 10000;
         try (FileInputStream is = new FileInputStream(fileName);
              BufferedInputStream bis = new BufferedInputStream(is, 1024*1024)) {
             int b;
-            Set<Character> word = new HashSet<Character>();
+            int word = 0;
             while ((b = bis.read()) != -1) {
                 if( (char)b == '\r' ) {
+                    if(word < smallestWord) smallestWord = word;
                     if(words.get(word) == null) {
                         words.put(word, 1);
                     } else {
                         words.put(word, words.get(word)+1);
                     }
-                    word = new HashSet<Character>();
-                } else {
-                    word.add((char)b);
+                    word = 0;
+                } else if ((char)b != '\n') {
+                    word |= (1<<(b-97));
                 }
             }
             bis.close();
         } catch(IOException e) {
             e.getStackTrace();
         }
-        char letters[] = new char[7];
-        char maxLetters[] = new char[7];
+        long currentTime = System.currentTimeMillis();
+        System.out.println(currentTime-startTime + " milliseonds to read input");
+        int letters[] = new int[7];
+        int maxLetters[] = new int[7];
         int maxCount = 0;
         long previousTime = startTime;
-        long currentTime;
         int previousNumbers[] = new int[5];
         for(int i = 0; i<20; i++) {
             for( int j = i+1; j<21; j++) {
-                previousNumbers[0] = numWords(words, new char[]{(char)(i+97),(char)(j+97)});
+                previousNumbers[0] = numWords(words, new int[]{i, j});
                 for( int k = j+1; k<22; k++) {
-                    previousNumbers[1] = numWords(words, new char[]{(char)(i+97),(char)(j+97)}, (char)(k+97), previousNumbers[0]);
+                    previousNumbers[1] = numWords(words, new int[]{i,j}, k, previousNumbers[0]);
                     for( int l = k+1; l<23; l++) {
-                        previousNumbers[2] = numWords(words, new char[]{(char)(i+97),(char)(j+97),(char)(k+97)}, (char)(l+97), previousNumbers[1]);
+                        previousNumbers[2] = numWords(words, new int[]{i,j,k}, l, previousNumbers[1]);
                         for( int m = l+1; m<24; m++) {
-                            previousNumbers[3] = numWords(words, new char[]{(char)(i+97),(char)(j+97),(char)(k+97),(char)(l+97)}, (char)(m+97), previousNumbers[2]);
+                            previousNumbers[3] = numWords(words, new int[]{i,j,k,l}, m, previousNumbers[2]);
                             for( int n = m+1; n<25; n++) {
-                                previousNumbers[4] = numWords(words, new char[]{(char)(i+97),(char)(j+97),(char)(k+97),(char)(l+97),(char)(m+97)}, (char)(n+97), previousNumbers[3]);
+                                previousNumbers[4] = numWords(words, new int[]{i,j,k,l,m}, n, previousNumbers[3]);
                                 for( int o = n+1; o<26; o++) {
-                                    letters = new char[]{(char)(i+97),(char)(j+97),(char)(k+97),(char)(l+97),(char)(m+97),(char)(n+97)};
-                                    int numWords = numWords(words, letters, (char)(o+97), previousNumbers[4]);
+                                    letters = new int[]{i,j,k,l,m,n};
+                                    int numWords = numWords(words, letters, o, previousNumbers[4]);
                                     if(maxCount<numWords) {
                                         maxLetters = letters;
                                         maxCount = numWords;
@@ -62,45 +65,55 @@ class CommonLetters{
                     }
                 }
             }
-            currentTime = System.currentTimeMillis();
-            System.out.println("Progress: " + (char)(i+97) + "\nTime: " + (currentTime - previousTime)/1000.0);
-            previousTime = currentTime;
         }
         long endTime = System.currentTimeMillis();
-        System.out.println("Letters: " + Arrays.toString(maxLetters));
+        System.out.println("Letters: " + Arrays.toString(toLetters(maxLetters)));
         System.out.println("Words: " + maxCount);
-        System.out.println("Time: " + (endTime-startTime)/1000);
+        System.out.println("Time: " + (endTime-startTime));
     }
-    private static int numWords(Dictionary words, char letters[], char newLetter, int oldNumber) {
+
+    private static char[] toLetters(int[] numbers) {
+        char letters[] = new char[numbers.length];
+        for (int i = 0; i<numbers.length; i++) {
+            letters[i] = (char)(numbers[i]+97);
+        }
+        return letters;
+    }
+
+    private static int numWords(Dictionary words, int letters[], int newLetter, int oldNumber) {
         int count = 0;
-        Set<Character> temp;
+        int temp;
         int length = letters.length;
+        Object num;
         for(int i = 1; i<=(1<<length); i++) {
-            temp = new HashSet<Character>(Arrays.asList('\n', newLetter));
+            temp = (1<<newLetter);
             for(int j = 0; j<length; j++) {
                 if( (i&(0b1<<j)) == 0b1<<j) {
-                    temp.add(letters[j]);
+                    temp |= (1<<letters[j]);
                 }
             }
-            if( words.get(temp) != null) {
-                count = count + (int)words.get(temp);
+            num = words.get(temp);
+            if( num != null) {
+                count = count + (int)num;
             }
         }
         return count + oldNumber;
     }
-    private static int numWords(Dictionary words, char letters[]) {
+    private static int numWords(Dictionary words, int letters[]) {
         int count = 0;
-        Set<Character> temp;
+        int temp;
         int length = letters.length;
+        Object num;
         for(int i = 1; i<=(1<<length); i++) {
-            temp = new HashSet<Character>(Arrays.asList('\n'));
+            temp = 0;
             for(int j = 0; j<length; j++) {
                 if( (i&(0b1<<j)) == 0b1<<j) {
-                    temp.add(letters[j]);
+                    temp |= (1<<letters[j]);
                 }
             }
-            if( words.get(temp) != null) {
-                count = count + (int)words.get(temp);
+            num = words.get(temp);
+            if( num != null) {
+                count = count + (int)num;
             }
         }
 
