@@ -34,12 +34,9 @@ class CommonLetters{
         } catch(IOException e) {
             e.getStackTrace();
         }
-        long currentTime = System.currentTimeMillis();
-        System.out.println(currentTime-startTime + " milliseonds to read input");
         int letters[] = new int[7];
         int maxLetters[] = new int[7];
         int maxCount = 0;
-        long previousTime = startTime;
         int previousNumbers[] = new int[5];
         for(int i = 0; i<20; i++) {
             for( int j = i+1; j<21; j++) {
@@ -52,11 +49,11 @@ class CommonLetters{
                             previousNumbers[3] = numWords(words, new int[]{i,j,k,l}, m, previousNumbers[2]);
                             for( int n = m+1; n<25; n++) {
                                 previousNumbers[4] = numWords(words, new int[]{i,j,k,l,m}, n, previousNumbers[3]);
+                                letters = new int[]{i,j,k,l,m,n};
                                 for( int o = n+1; o<26; o++) {
-                                    letters = new int[]{i,j,k,l,m,n};
                                     int numWords = numWords(words, letters, o, previousNumbers[4]);
                                     if(maxCount<numWords) {
-                                        maxLetters = letters;
+                                        maxLetters = new int[]{i, j, k, l, m, n , o};
                                         maxCount = numWords;
                                     }
                                 }
@@ -73,6 +70,7 @@ class CommonLetters{
     }
 
     private static char[] toLetters(int[] numbers) {
+        System.out.println(Arrays.toString(numbers));
         char letters[] = new char[numbers.length];
         for (int i = 0; i<numbers.length; i++) {
             letters[i] = (char)(numbers[i]+97);
@@ -80,7 +78,7 @@ class CommonLetters{
         return letters;
     }
 
-    private static int numWords(Dictionary words, int letters[], int newLetter, int oldNumber) {
+    private static int numWords(Dictionary<Integer, Integer> words, int letters[], int newLetter, int oldNumber) {
         int count = 0;
         int temp;
         int length = letters.length;
@@ -88,18 +86,18 @@ class CommonLetters{
         for(int i = 1; i<=(1<<length); i++) {
             temp = (1<<newLetter);
             for(int j = 0; j<length; j++) {
-                if( (i&(0b1<<j)) == 0b1<<j) {
+                if( (i&(0b1<<j)) > 0) {
                     temp |= (1<<letters[j]);
                 }
             }
             num = words.get(temp);
             if( num != null) {
-                count = count + (int)num;
+                count += (int)num;
             }
         }
         return count + oldNumber;
     }
-    private static int numWords(Dictionary words, int letters[]) {
+    private static int numWords(Dictionary<Integer, Integer> words, int letters[]) {
         int count = 0;
         int temp;
         int length = letters.length;
@@ -107,7 +105,7 @@ class CommonLetters{
         for(int i = 1; i<=(1<<length); i++) {
             temp = 0;
             for(int j = 0; j<length; j++) {
-                if( (i&(0b1<<j)) == 0b1<<j) {
+                if( (i&(0b1<<j)) > 0) {
                     temp |= (1<<letters[j]);
                 }
             }
